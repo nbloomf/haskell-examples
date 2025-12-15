@@ -2,7 +2,7 @@ cabal-version:      3.0
 name:               haskell-examples
 version:            0.1.0.0
 synopsis:           Running examples of haskell concepts
-license:            BSD3
+license:            BSD-3-Clause
 author:             Nathan Bloomfield
 maintainer:         nathan.bloomfield@tweag.io
 copyright:          Modus Create
@@ -12,9 +12,18 @@ extra-doc-files:    README.md
 common warnings
     ghc-options: -Wall
 
-executable haskell-examples
-    import:           warnings
-    main-is:          Main.hs
-    build-depends:    base ^>=4.18.2.1
-    hs-source-dirs:   app
-    default-language: Haskell2010
+executable option-parsing
+  import:           warnings
+  main-is:          OptionParsingMain.hs
+  build-depends:      base ^>=4.18.2.1
+                    , haskell-examples-lib
+  hs-source-dirs:   app
+  default-language: Haskell2010
+
+library haskell-examples-lib
+  import:             warnings
+  hs-source-dirs:     src
+  exposed-modules:      Example.OptionParsing
+  build-depends:        base
+                      , directory >= 1.3.8.4
+                      , optparse-applicative >= 0.18.1.0

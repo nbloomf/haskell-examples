@@ -44,9 +44,10 @@ optionParsingMain = do
     \OPTION_PARSE_VARIANT environment variable.\n"
   putStrLn
     "Select an approach using the following values for that variable:\n\
-    \  * 'getopt-data'    : System.Console.GetOpt with a flag bag (`a`)\n\
-    \  * 'getopt-func'    : System.Console.GetOpt with functions (`a -> a`)\n\
-    \  * 'getopt-kleisli' : System.Console.GetOpt with kleisli arrows (`a -> m a`)\n"
+    \  * 'getopt-data'         : System.Console.GetOpt with a flag bag (`a`)\n\
+    \  * 'getopt-func'         : System.Console.GetOpt with functions (`a -> a`)\n\
+    \  * 'getopt-kleisli'      : System.Console.GetOpt with kleisli arrows (`a -> m a`)\n\
+    \  * 'optparse-applicative : Use optparse-applicative'"
   var <- getEnv "OPTION_PARSE_VARIANT"
   case var of
     "getopt-data"          -> main1
@@ -274,4 +275,17 @@ main3 = do
 
 {-
 This parser has a bug, which arguably is bad API design. The specification says that the `--shout` parameter's argument is optional /and/ that `--shout` can appear multiple times. These two properties are unfortunately incompatible, because parsers that cannot fail (which becomes the case when it has a default value) will hang when passed to `some` or `many`. There may be a way to fix this that I just can't think of.
+-}
+
+-- Comparing
+------------
+
+{-
+I'd never used optparse-applicative before this exercise; I'd seen it around but never took the time to look into it because `System.Console.GetOpt` has been good enough. Having looked at it now I think I will switch. I'm only able to come up with three things you could plausibly call downsides compared to System.Console.GetOpt:
+
+    * It adds a dependency. (Albeit not a very deep one; a midsized project probably already uses most of its transitive dependencies.)
+    * As far as I can tell from my short time with it, applicative parsers cannot do IO when validating parameters.
+    * It has the limitations of applicatives, like combining many/some with optional values.
+
+The first of those is not really an issue in practice, and the other two are arguably good because they enforce better design. If I find myself /needing/ to interleave command line parsing with IO, something smells.
 -}

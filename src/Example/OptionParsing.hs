@@ -1,5 +1,5 @@
 -- PROBLEM: My application needs a familiar and consistent command line interface.
--- SOLUTIONS: (1) Use one of the purpose built libraries for this.
+-- SOLUTIONS: (1) Use one of the purpose-built libraries for this.
 module Example.OptionParsing where
 
 import Control.Monad ((>=>))
@@ -13,11 +13,11 @@ import System.Exit
 {-
 Command line arguments look like this (the part after `foo`):
 
-    foo --option1=value1 --option2=value2 ... --optionN=valueN
+    foo --option1[=value1] --option2[=value2] ... --optionN[=valueN]
 
-And they generally follow some conventions: the order of the options does not matter, and sometimes it is desireable to allow the same option name to appear more than once. There's some additional structure--most tools follow a standardized format for their usage instructions and man pages, which must be kept in sync with the code.
+And they generally follow some conventions: the order of the options does not matter, the option values are... optional, and sometimes it is desirable to allow the same option name to appear more than once. There's some additional structure--most tools follow a standardized format for their usage instructions and man pages, which must be kept in sync with the code.
 
-This is a perfect example of a problem to be solved with a library. Nearly everyone needs to solve this problem, there's a lot of fiddly details to get right, and there is a significant benefit for users if everyone just uses the same thing (principle of least astonishment).
+This is a great problem to be solved with a library. Nearly everyone needs to parse CL arguments, there's a lot of fiddly details to get right, and there is a significant benefit for users if everyone just uses the same thing (principle of least astonishment).
 -}
 
 {-
@@ -54,6 +54,7 @@ optionParsingMain = do
     "getopt-func"          -> main2A
     "getopt-kleisli"       -> main2B
     "optparse-applicative" -> main3
+    _ -> putStrLn "OPTION_PARSE_VARIANT is invalid!"
 
 
 
@@ -137,9 +138,7 @@ options1 =
   ]
 
 main1 :: IO ()
-main1 = do
-  opts <- getOptions options1
-  print opts
+main1 = getOptions options1 >>= print
 
 {-
 I think of this as the "flag bag" approach, because after processing we just have a big list of values. There may be duplicates. This is fine for simple tools, but I'm not a big fan otherwise. Very often there are constraints on arguments like "must be unique", and with a flag bag we have to verify all that stuff manually. There is a better way.
@@ -257,24 +256,25 @@ The `Mod f a` type is another monoid, used to modify parsers. There are atomic m
 -}
 
 data Option_GetOpt3 = Option_GetOpt3
-  { og3_help  :: Bool
-  , og3_input :: Maybe FilePath
+  { og3_input :: Maybe FilePath
   , og3_shout :: [Maybe String]
   } deriving (Show)
 
 options3 :: Parser Option_GetOpt3
 options3 = Option_GetOpt3
-  <$> (flag False True (short '?' <> long "help"))
-  <*> option (maybeReader (Just . Just)) (long "input")
+  <$> option (maybeReader (Just . Just))
+        (long "input" <> metavar "FILE_PATH" <> help "path to input file; default is stdin")
   <*> many (option (maybeReader (Just . Just)) (long "shout"))
 
 main3 :: IO ()
 main3 = do
-  opts <- execParser (info options3 fullDesc)
+  opts <- execParser (info (helper <*> options3) fullDesc)
   print opts
 
 {-
-This parser has a bug, which arguably is bad API design. The specification says that the `--shout` parameter's argument is optional /and/ that `--shout` can appear multiple times. These two properties are unfortunately incompatible, because parsers that cannot fail (which becomes the case when it has a default value) will hang when passed to `some` or `many`. There may be a way to fix this that I just can't think of.
+This parser has a bug, which arguably is bad API design on my part. The specification says that the `--shout` parameter's argument is optional /and/ that `--shout` can appear multiple times. These two properties are unfortunately incompatible, because parsers that cannot fail (which becomes the case when it has a default value) will hang when passed to `some` or `many`. There may be a way to fix this that I just can't think of, but it's probably better to use two different options.
+
+Also of note is that the help flag is gone, subsumed by `helper` (which amends any option parser with a basic --help option that prints usage info).
 -}
 
 -- Comparing
@@ -285,7 +285,7 @@ I'd never used optparse-applicative before this exercise; I'd seen it around but
 
     * It adds a dependency. (Albeit not a very deep one; a midsized project probably already uses most of its transitive dependencies.)
     * As far as I can tell from my short time with it, applicative parsers cannot do IO when validating parameters.
-    * It has the limitations of applicatives, like combining many/some with optional values.
+    * It has the limitations of applicatives, like combining many/some with optional values and sequencing is inexpressible.
 
-The first of those is not really an issue in practice, and the other two are arguably good because they enforce better design. If I find myself /needing/ to interleave command line parsing with IO, something smells.
+The first of those is not really an issue in practice, and the other two are arguably good because they enforce better design. If I /need/ to interleave command line parsing with IO, something smells, and if I /need/ the result of parsing one option to depend on prior ones, it smells even more.
 -}

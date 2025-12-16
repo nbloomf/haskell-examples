@@ -264,7 +264,8 @@ options3 :: Parser Option_GetOpt3
 options3 = Option_GetOpt3
   <$> option (maybeReader (Just . Just))
         (long "input" <> metavar "FILE_PATH" <> help "path to input file; default is stdin")
-  <*> many (option (maybeReader (Just . Just)) (long "shout"))
+  <*> many (option (maybeReader (Just . Just))
+        (long "shout" <> metavar "STRING" <> help "shout any occurrences of the argument"))
 
 main3 :: IO ()
 main3 = do
